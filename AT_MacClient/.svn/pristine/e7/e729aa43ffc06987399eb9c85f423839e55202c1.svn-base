@@ -1,0 +1,132 @@
+*** Settings ***
+Suite Setup       清除缓存，用户登录    elvis    ${ip}    test0    EISOO.com123
+Suite Teardown    结束AnyShare进程
+Test Setup
+Test Teardown
+Force Tags        openfile
+Resource          ../commonKeyword.txt
+Resource          ../docOperatonKeyword.txt
+Resource          ../loginKeyword.txt
+Resource          ../variable.txt
+
+*** Test Cases ***
+用户对文件a有显示预览下载权限，可以成功打开文件
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${7}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #打开文件
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${preview}    操作文件    preview    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    Microsoft Word
+    should be equal    ${preview[0]}    success
+    #取消权限配置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${del}    删除文件    ${upload[1]}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${del[0]}    ${200}
+
+manual——用户对文件a有显示预览下载权限，文件在云端版本新于客户端版本，打开的文件为最新的版本
+    [Tags]    manual
+
+设置文件a的所有者为用户A，用户A可以成功打开文件
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${userconfig}    生成所有者配置项    ${re1[1]}
+    ${userconfig1}    生成所有者配置项    ${re[1]}
+    @{userconfigs}    create list    ${userconfig}    ${userconfig1}
+    ${ownerStatus}    批量设置所有者    ${docid}    ${re[1]}    ${re[2]}    ${userconfigs}
+    should be equal    ${ownerStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #打开文件
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${preview}    操作文件    preview    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    Microsoft Word
+    should be equal    ${preview[0]}    success
+    #删除文件
+    ${del}    删除文件    ${upload[1]}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${del[0]}    ${200}
+    #取消所有者配置
+    ${userconfig1}    生成所有者配置项    ${re[1]}
+    @{userconfigs}    create list    ${userconfig1}
+    ${ownerStatus}    批量设置所有者    ${docid}    ${re[1]}    ${re[2]}    ${userconfigs}
+    should be equal    ${ownerStatus[0]}    ${200}
+
+（待改进）用户对文件只有显示预览权限，打开文件失败
+    [Tags]    waitingForImproved
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${3}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #打开文件
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${preview}    操作文件    preview    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    Microsoft Word
+    should be equal    ${preview[0]}    get an exception
+    log    ${preview[1]}
+    #取消权限配置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${del}    删除文件    ${upload[1]}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${del[0]}    ${200}
+
+manual——用户密级低于文件密级，打开文件失败
+    [Tags]    manual

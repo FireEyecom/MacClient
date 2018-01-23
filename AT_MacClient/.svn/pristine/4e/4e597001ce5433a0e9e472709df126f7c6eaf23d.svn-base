@@ -1,0 +1,106 @@
+*** Settings ***
+Suite Setup       清除缓存，用户登录    elvis    ${ip}    test0    EISOO.com123    # 清除缓存，用户登录 | elvis | ${ip} | test0 | EISOO.com123
+Suite Teardown    结束AnyShare进程    # 结束AnyShare进程
+Force Tags        link
+Resource          ../commonKeyword.txt
+Resource          ../docOperatonKeyword.txt
+Resource          ../variable.txt
+Resource          ../commonKeyword.txt
+Resource          ../loginKeyword.txt
+
+*** Test Cases ***
+内链共享可成功添加访问者、删除访问者
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    个人文档
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档    test0
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${re}    复制文件    ${robotPath}/testFile/test.docx    /Volumes/AnyShare/MyDocuments.localized/test0
+    should be equal    ${re[0]}    success
+    #开启外链
+    ${re}    添加内链访问者    test.docx    AnyShare:个人文档:test0
+    should be equal    ${re[0]}    success
+    #关闭外链
+    ${re}    删除内链访问者    test.docx    AnyShare:个人文档:test0
+    should be equal    ${re[0]}    success
+    sleep    2
+    #删除文件
+    ${re}    删除文档    /Volumes/AnyShare/MyDocuments.localized/test0/test.docx
+    should be equal    ${re[0]}    success
+
+可成功开启、关闭外链
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    个人文档
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档    test0
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${re}    复制文件    ${robotPath}/testFile/test.docx    /Volumes/AnyShare/MyDocuments.localized/test0
+    should be equal    ${re[0]}    success
+    #开启外链
+    ${re}    开启外链    test.docx    AnyShare:个人文档:test0
+    should be equal    ${re[0]}    success
+    #关闭外链
+    ${re}    关闭外链    test.docx    AnyShare:个人文档:test0
+    should be equal    ${re[0]}    success
+    #删除文件
+    ${re}    删除文档    /Volumes/AnyShare/MyDocuments.localized/test0/test.docx
+    should be equal    ${re[0]}    success
+
+非文件所有者无法开启外链
+    #用户test1给用户test0共享文档库，设置显示新建权限
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${9}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #复制文件
+    Comment    ${docname}    set variable    AnyShare研发部
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/test.docx    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    success
+    #点击外链共享
+    ${link}    点击外链共享    test.docx    AnyShare:文档库:${docname}
+    should be equal    ${link[0]}    success
+    ${error}    判断错误信息    ${link[1]}    您不是该文件所有者，无法开启链接共享。
+    should be equal    ${error}    success
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirList}    set variable    ${dirs[2]}
+    :FOR    ${I}    IN    @{dirList}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${flag}    run keyword if    '${name}'=='test.docx'    set variable    ${1}
+    \    ${docid}    run keyword if    '${name}'=='test.docx'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='test.docx'    exit for loop
+    ${delfile}    删除文件    ${docid}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}

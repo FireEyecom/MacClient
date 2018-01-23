@@ -1,0 +1,304 @@
+*** Settings ***
+Suite Setup       清除缓存，用户登录    elvis    ${ip}    test0    EISOO.com123
+Suite Teardown    结束AnyShare进程
+Test Setup
+Test Teardown
+Force Tags        upload
+Resource          ../loginKeyword.txt
+Resource          ../commonKeyword.txt
+Resource          ../variable.txt
+Resource          ../docOperatonKeyword.txt
+
+*** Test Cases ***
+将文件从盘外复制到盘内路径，上传成功
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    个人文档
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档    test0
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${re}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/MyDocuments.localized/test0
+    should be equal    ${re[0]}    success
+    #检查文件是否成功上传到云端
+    ${re}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${1}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirList}    set variable    ${dirs[2]}
+    : FOR    ${I}    IN    @{dirList}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${flag}    run keyword if    '${name}'=='1.plist'    set variable    ${1}
+    \    ${docid}    run keyword if    '${name}'=='1.plist'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='1.plist'    exit for loop
+    should be equal    ${flag}    ${1}
+    #删除文件
+    ${re}    删除文档    /Volumes/AnyShare/MyDocuments.localized/test0/1.plist
+    should be equal    ${re[0]}    success
+
+将文件从盘内路径复制到盘内其他路径，上传成功
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    个人文档
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档    test0
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${re}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/MyDocuments.localized/test0
+    should be equal    ${re[0]}    success
+    #新建文件夹
+    ${mkdir}    新建文件夹    /Volumes/AnyShare/MyDocuments.localized/test0/tmp
+    should be equal    ${mkdir[0]}    success
+    #复制文件
+    ${re}    复制文件    /Volumes/AnyShare/MyDocuments.localized/test0/1.plist    /Volumes/AnyShare/MyDocuments.localized/test0/tmp
+    should be equal    ${re[0]}    success
+    #删除文件
+    ${re}    删除文档    /Volumes/AnyShare/MyDocuments.localized/test0/1.plist
+    should be equal    ${re[0]}    success
+    #删除文件夹
+    ${re}    删除文档    /Volumes/AnyShare/MyDocuments.localized/test0/tmp
+    should be equal    ${re[0]}    success
+
+将文件从盘外复制到云盘根目录，上传失败
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${re}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare
+    should be equal    ${re[0]}    get an exception
+    ${re1}    判断错误信息    ${re[1]}    文档创建失败
+    should be equal    ${re1}    success
+    ${re1}    判断错误信息    ${re[1]}    您不能在此位置上传文档
+    should be equal    ${re1}    success
+    ${re1}    点击按钮1
+    should be equal    ${re1[0]}    success
+
+bug将文件从盘外复制到盘内路径，文档名不合法，上传失败
+    [Tags]    invalid
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    个人文档
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档    test0
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${re}    复制文件    ${robotPath}/testFile/\|？.sh    /Volumes/AnyShare/MyDocuments.localized/test0
+    should be equal    ${re[0]}    get an exception
+    ${re1}    判断错误信息    ${re[1]}
+    should be equal    ${re1}    success
+    ${re1}    点击按钮1
+    should be equal    ${re1[0]}    success
+
+将文件从盘外复制到盘内路径，目标路径在云端不存在，上传失败
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    个人文档
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档    test0
+    should be equal    ${listStatus[0]}    success
+    #创建目录
+    ${dir}    新建文件夹    /Volumes/AnyShare/MyDocuments.localized/test0/TMP
+    should be equal    ${dir[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:个人文档:test0    TMP
+    should be equal    ${listStatus[0]}    success
+    #删除目录
+    ${re}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${1}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirlist}    set variable    ${dirs[1]}
+    : FOR    ${I}    IN    @{dirlist}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${docid1}    run keyword if    '${name}'=='TMP'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='TMP'    exit for loop
+    ${del}    删除目录    ${docid1}    ${re[1]}    ${re[2]}    ${ip}
+    should be equal    ${del[0]}    ${200}
+    #复制文件
+    ${re1}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/MyDocuments.localized/test0/TMP
+    should be equal    ${re1[0]}    get an exception
+    ${re1}    判断错误信息    ${re1[1]}    请求的文件或目录不存在
+    should be equal    ${re1}    success
+    ${re1}    点击按钮1
+    should be equal    ${re1[0]}    success
+
+bug将文件从盘外复制到盘内路径，用户对此路径没有新建权限，上传失败
+    [Tags]    waitingForImproved
+    #用户test1给用户test0共享文档库，设置显示预览下载复制权限
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${71}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #复制文件
+    ${docname}    set variable    AnyShare研发部
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    get an exception
+    log    ${copy[1]}
+    ${re1}    判断错误信息    ${copy[1]}    无法执行上传操作
+    should be equal    ${re1}    success
+    ${re1}    判断错误信息    ${copy[1]}    您对目标"AnyShare研发部"没有新建权限
+    should be equal    ${re1}    success
+    ${re2}    点击按钮1
+    should be equal    ${re2[0]}    success
+    #取消权限
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+
+manual——将文件从盘外复制到盘内路径，目标位置配额空间不足，上传失败
+    [Tags]    manual
+
+bug（偶现提示没有新建权限）将文件从盘外复制到盘内路径，存在同名文件，执行替换操作，用户对同名的文件没有删除权限，弹出阻止提示框
+    [Tags]    waitingForImproved
+    #用户test1给用户test0共享文档库，设置显示新建权限
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${9}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #复制文件
+    Comment    ${docname}    set variable    AnyShare研发部
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    get an exception
+    ${re1}    判断错误信息    ${copy[1]}    无法执行删除操作
+    should be equal    ${re1}    success
+    ${re1}    判断错误信息    ${copy[1]}    您对目标"1.plist"没有删除权限
+    should be equal    ${re1}    success
+    ${re1}    点击按钮1
+    should be equal    ${re1[0]}    success
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirList}    set variable    ${dirs[2]}
+    : FOR    ${I}    IN    @{dirList}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${flag}    run keyword if    '${name}'=='1.plist'    set variable    ${1}
+    \    ${docid}    run keyword if    '${name}'=='1.plist'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='1.plist'    exit for loop
+    ${delfile}    删除文件    ${docid}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}
+
+manual——将文件从盘外复制到盘内路径，存在同名文件，执行替换操作，用户对同名的文件有删除权限，但用户密级低于同名文件，弹出阻止提示框
+    [Tags]    manual
+
+manual——将文件从盘外复制到盘内路径，存在同名文件，执行替换操作，用户对同名的文件有删除权限，且密级足够，但文件已被锁定，弹出阻止提示框
+    [Tags]    manual
+
+将文件从盘外复制到盘内路径，存在同名文件，执行替换操作，用户对同名的文件有删除权限，且密级足够，文件未被锁定，替换成功
+    #用户test1给用户test0共享文档库，设置权限    显示、预览、下载、复制、修改、新建、删除
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${127}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #复制文件
+    Comment    ${docname}    set variable    AnyShare研发部
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    success
+    Comment    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    Comment    should be equal    ${listStatus[0]}    success
+    Comment    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    Comment    should be equal    ${listStatus[0]}    success
+    Comment    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    Comment    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    success
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirList}    set variable    ${dirs[2]}
+    : FOR    ${I}    IN    @{dirList}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${flag}    run keyword if    '${name}'=='1.plist'    set variable    ${1}
+    \    ${docid}    run keyword if    '${name}'=='1.plist'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='1.plist'    exit for loop
+    ${delfile}    删除文件    ${docid}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}

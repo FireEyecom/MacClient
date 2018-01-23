@@ -1,0 +1,198 @@
+*** Settings ***
+Library           SourceLibrary/login.py
+Library           SourceLibrary/ShareMgnt_Thrift.py
+Library           SourceLibrary/EACP_Thrift.py
+Library           SourceLibrary/API.py
+
+*** Keywords ***
+结束AnyShare进程
+    ${return}    logoff
+    [Return]    ${return}
+
+使用美国输入法
+    ${return}    setInputMethod
+    [Return]    ${return}
+
+判断错误信息
+    [Arguments]    ${UIinfo}    ${errorMessage}
+    ${return}    shouldBeEqual1    ${UIinfo}    ${errorMessage}
+    [Return]    ${return}
+
+初始化环境
+    初始化eacp    ${ip}
+    初始化sharemgnt    ${ip}
+    ${re}    initEnvironment
+    should be equal    ${re}    success
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    @{ownerIds}    create list    ${re[1]}
+    ${re}    创建文档库    AnyShare研发部    部门文档    ${ownerIds}
+    should be equal    ${re[0]}    success
+    ${re}    使用美国输入法
+    should be equal    ${re[0]}    success
+
+初始化sharemgnt
+    [Arguments]    ${ip}    ${port}=${9600}
+    ${re}    shareMgnt_setup    ${ip}    ${port}
+    [Return]    ${re}
+
+关闭sharemgnt
+    ${re}    shareMgnt_teardown
+    [Return]    ${re}
+
+设置密码配置信息
+    [Arguments]    ${strongStatus}=${False}    ${expireTime}=${-1}    ${lockStatus}=${False}    ${passwdErrCnt}=${3}    ${passwdLockTime}=${60}
+    [Timeout]
+    ${pwdConfig}    ncTUsrmPasswordConfig    ${strongStatus}    ${expireTime}    ${lockStatus}    ${passwdErrCnt}    ${passwdLockTime}
+    ${return}    Usrm_SetPasswordConfig    ${pwdConfig}
+    [Return]    ${return}
+
+用户身份验证
+    [Arguments]    ${username}    ${password}    ${ip}    ${port}=9998
+    ${re}    user_login    ${username}    ${password}    ${ip}    ${port}
+    [Return]    ${re}
+
+启用|禁用用户
+    [Arguments]    ${userid}    ${status}
+    ${re}    Usrm_SetUserStatus    ${userid}    ${status}
+    [Return]    ${re}
+
+添加用户网段设置
+    [Arguments]    ${Netip}    ${subNetMask}
+    ${re}    Usrm_AddNetAccessorsInfo    ${Netip}    ${subNetMask}
+    [Return]    ${re}
+
+编辑用户网段设置
+    [Arguments]    ${accessorsList}    ${netId}    ${netIp}    ${subNetMask}
+    ${re}    Usrm_EditNetAccessorsInfo    ${accessorsList}    ${netId}    ${netIp}    ${subNetMask}
+    [Return]    ${re}
+
+网段访问者信息参数
+    [Arguments]    ${accessorId}    ${accessorType}    ${accessorName}
+    ${re}    ncTAccessorInfo    ${accessorId}    ${accessorType}    ${accessorName}
+    [Return]    ${re}
+
+获取网段设置信息
+    [Timeout]
+    ${re}    Usrm_GetNet
+    [Return]    ${re}
+
+删除用户网段设置
+    [Arguments]    ${netAccessorsId}
+    ${re}    Usrm_DeleteNetAccessorsInfo    ${netAccessorsId}
+    [Return]    ${re}
+
+初始化eacp
+    [Arguments]    ${ip}    ${port}=${9992}
+    ${re}    eacp_setup    ${ip}    ${port}
+    [Return]    ${re}
+
+关闭eacp
+    ${re}    eacp_teardown
+    [Return]    ${re}
+
+添加设备信息
+    [Arguments]    ${userId}    ${udid}    ${osType}
+    ${re}    EACP_AddDevice    ${userId}    ${udid}    ${osType}
+    [Return]    ${re}
+
+删除设备信息
+    [Arguments]    ${userId}    ${udid}
+    ${re}    EACP_DeleteDevice    ${userId}    ${udid}
+    [Return]    ${re}
+
+启用设备
+    [Arguments]    ${userId}    ${udid}
+    ${re}    EACP_EnableDevice    ${userId}    ${udid}
+    [Return]    ${re}
+
+禁用设备
+    [Arguments]    ${userId}    ${udid}
+    ${re}    EACP_DisableDevice    ${userId}    ${udid}
+    [Return]    ${re}
+
+获取用户的设备信息
+    [Arguments]    ${userId}
+    ${re}    EACP_GetDevicesByUserId    ${userId}
+    [Return]    ${re}
+
+获取入口文档
+    [Arguments]    ${userid}    ${tokenid}    ${doctype}    ${ip}    ${port}=9998
+    ${re}    getEntrydoc    ${userid}    ${tokenid}    ${doctype}    ${ip}    ${port}
+    [Return]    ${re}
+
+浏览目录
+    [Arguments]    ${docid}    ${ip}    ${userid}    ${tokenid}    ${attr}=${True}    ${port}=${9123}
+    ${re}    dirList    ${docid}    ${ip}    ${userid}    ${tokenid}    ${attr}
+    ...    ${port}
+    [Return]    ${re}
+
+从字典中取值
+    [Arguments]    ${var}    ${key}
+    ${re}    getFromDictionary    ${var}    ${key}
+    [Return]    ${re}
+
+删除文件
+    [Arguments]    ${docid}    ${ip}    ${userid}    ${tokenid}    ${port}=${9123}
+    [Documentation]    删除文件，此接口未经过mac客户端删除文件，因此mac客户端本地数据库仍保存有已删除文件的gns，
+    ...    将与已删除文件的同名文件 复制至 已删除文件未删除前所在目录，会报错：请求的文件或文件夹不存在
+    ...    这是因为复制文件时，mac客户端会检查文件是否存在，mac客户端本地数据库未与服务端数据同步，故而未检测到
+    ...    目标路径同名文件已删除，调用上传接口时会传递已删除文件的gns。
+    ${re}    fileDelete    ${docid}    ${ip}    ${userid}    ${tokenid}    ${port}
+    [Return]    ${re}
+
+创建文档库
+    [Arguments]    ${name}    ${typeName}    ${ownerIds}    ${spaceQuota}=${214748364800}    ${createrId}=266c6a42-6131-4d62-8f39-853e7093701c
+    ${re}    EACP_AddCustomDoc    ${name}    ${typeName}    ${ownerIds}    ${spaceQuota}    ${createrId}
+    [Return]    ${re}
+
+批量设置权限
+    [Arguments]    ${userid}    ${tokenid}    ${docid}    ${permconfigs}    ${ip}    ${port}=${9998}
+    ${re}    setPerm    ${userid}    ${tokenid}    ${docid}    ${permconfigs}    ${ip}
+    ...    ${port}
+    [Return]    ${re}
+
+生成权限配置项
+    [Arguments]    ${isallowed}    ${permvalue}    ${accessorid}    ${accessortype}    ${endtime}=${-1}    ${inheritpath}=${EMPTY}
+    ${re}    generatePermconfig    ${isallowed}    ${permvalue}    ${accessorid}    ${accessortype}    ${endtime}
+    ...    ${inheritpath}
+    [Return]    ${re}
+
+删除目录
+    [Arguments]    ${docid}    ${userid}    ${tokenid}    ${ip}    ${port}=${9123}
+    ${re}    dirDelete    ${docid}    ${userid}    ${tokenid}    ${ip}    ${port}
+    [Return]    ${re}
+
+上传文件
+    [Arguments]    ${ip}    ${gnsobject}    ${userid}    ${tokenid}    ${file1}    ${iscomplete}
+    ...    ${versionid}    ${isexist}    ${ondup}=${0}    ${md5}=''    ${crc32}=''    ${slice_md5}=''
+    ...    ${csflevel}=${0}    ${https}=${0}    ${uploadid}=''    ${port}=${9123}
+    ${re}    new_file_upload    ${ip}    ${gnsobject}    ${userid}    ${tokenid}    ${file1}
+    ...    ${iscomplete}    ${versionid}    ${isexist}    ${ondup}    ${md5}    ${crc32}
+    ...    ${slice_md5}    ${csflevel}    ${https}    ${uploadid}    ${port}
+    [Return]    ${re}
+
+生成所有者配置项
+    [Arguments]    ${userid}    ${inheritpath}=${EMPTY}
+    ${re}    generateOwnerconfig    ${userid}    ${inheritpath}
+    [Return]    ${re}
+
+批量设置所有者
+    [Arguments]    ${docid}    ${userid}    ${tokenid}    ${userconfigs}    ${ip}=${ip}    ${port}=${9998}
+    ${re}    setOwner    ${docid}    ${userid}    ${tokenid}    ${userconfigs}    ${ip}
+    ...    ${port}
+    [Return]    ${re}
+
+获取文件元数据
+    [Arguments]    ${userid}    ${tokenid}    ${docid}    ${ip}    ${port}=${9123}
+    ${re}    fileMetadata    ${userid}    ${tokenid}    ${docid}    ${ip}    ${port}
+    [Return]    ${re}
+
+关闭连接
+    关闭sharemgnt
+    关闭eacp
+
+退出
+    ${re}    quit_As
+    [Return]    ${re}

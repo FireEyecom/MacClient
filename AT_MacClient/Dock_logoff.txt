@@ -1,0 +1,13 @@
+*** Settings ***
+Suite Setup       清除缓存，用户登录    elvis    ${ip}    test0    EISOO.com123
+Suite Teardown    结束AnyShare进程    # 结束AnyShare进程
+Resource          commonKeyword.txt
+Resource          docOperatonKeyword.txt
+Resource          loginKeyword.txt
+Library           SourceLibrary/quitAs.py
+Resource          variable.txt
+
+*** Test Cases ***
+Dock退出
+    ${quitas[0]}    退出
+    should be equal    ${quitas[0]}    success

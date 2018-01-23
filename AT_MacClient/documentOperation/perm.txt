@@ -1,0 +1,347 @@
+*** Settings ***
+Documentation     权限捆绑：
+...               预览下载 \ 支持 \ 打开文件
+...               删除新建 \ 支持 \ 同名替换
+Suite Setup       清除缓存，用户登录    elvis    ${ip}    test0    EISOO.com123
+Suite Teardown    结束AnyShare进程
+Test Setup        # 清除缓存，用户登录 | elvis | ${ip} | test0 | EISOO.com123
+Force Tags        perm
+Resource          ../loginKeyword.txt
+Resource          ../variable.txt
+Resource          ../docOperatonKeyword.txt
+Resource          ../commonKeyword.txt
+
+*** Test Cases ***
+(待改进）用户对文件只有显示权限，浏览目录可看到文件，打开文件、盘内到盘外复制文件、盘外到盘内复制文件、删除文件、重命名文件失败
+    [Tags]    waitingForImproved
+
+用户对文件只有显示、新建权限，从盘外复制文件至盘内，盘内没有同名文件，复制成功
+    #用户test1给用户test0共享文档库，设置显示新建权限
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${9}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #复制文件
+    Comment    ${docname}    set variable    AnyShare研发部
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    ${robotPath}/testFile/1.plist    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${copy[0]}    success
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirList}    set variable    ${dirs[2]}
+    : FOR    ${I}    IN    @{dirList}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${flag}    run keyword if    '${name}'=='1.plist'    set variable    ${1}
+    \    ${docid}    run keyword if    '${name}'=='1.plist'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='1.plist'    exit for loop
+    ${delfile}    删除文件    ${docid}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}
+
+（待改进）用户对文件只有显示、预览权限，打开文件失败
+    [Tags]    waitingForImproved
+
+（待改进）用户对文件只有显示、预览、下载权限，可成功打开文件，编辑文件内容、重命名失败
+    [Tags]    waitingForImproved
+
+用户对文件只有显示、预览、下载、复制权限，可成功将文件从盘内复制到盘外
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${71}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/1.plist
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #删除目标路径同名文件
+    ${del}    删除文档    /Users/${macAccount}/desktop/1.plist
+    should be equal    ${del[0]}    success
+    #检查目标路径是否有同名文件
+    ${isExist}    检查文档是否存在    /Users/${macAccount}/desktop    1.plist
+    should be equal    ${isExist[0]}    get an exception
+    #复制文件
+    Comment    ${docname}    set variable    AnyShare研发部
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${copy}    复制文件    /Volumes/AnyShare/Libraries.localized/${docname}/1.plist    /Users/${macAccount}/desktop
+    should be equal    ${copy[0]}    success
+    #检查目标路径是否有同名文件
+    ${isExist}    检查文档是否存在    /Users/${macAccount}/desktop    1.plist
+    should be equal    ${isExist[0]}    success
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${entrydoc}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entrydoc[0]}    ${200}
+    ${var}    set variable    ${entrydoc[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${dirs}    浏览目录    ${docid}    ${ip}    ${re[1]}    ${re[2]}    ${True}
+    should be equal    ${dirs[0]}    ${200}
+    @{dirList}    set variable    ${dirs[2]}
+    : FOR    ${I}    IN    @{dirList}
+    \    ${name}    从字典中取值    ${I}    name
+    \    ${filegns}    从字典中取值    ${I}    docid
+    \    ${flag}    run keyword if    '${name}'=='1.plist'    set variable    ${1}
+    \    ${docid}    run keyword if    '${name}'=='1.plist'    set variable    ${filegns}
+    \    run keyword if    '${name}'=='1.plist'    exit for loop
+    ${delfile}    删除文件    ${docid}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}
+
+（待改进）用户对文件只有显示、预览、下载、复制权限，将文件从盘内复制到盘内失败
+    [Tags]    waitingForImproved
+
+用户对文件只有显示、预览、下载、修改、新建权限，可成功编辑文件内容以及重命名
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${31}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #编辑文件
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${edit}    操作文件    edit    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    Microsoft Word
+    should be equal    ${edit[0]}    success
+    #重命名
+    ${move}    移动文档    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    /Volumes/AnyShare/Libraries.localized/${docname}/test1.docx
+    should be equal    ${move[0]}    success
+    #获取文件元数据
+    ${metadata}    获取文件元数据    ${re[1]}    ${re[2]}    ${upload[1]}    ${ip}
+    should be equal    ${metadata[0]}    ${200}
+    ${editor}    从字典中取值    ${metadata[1]}    editor
+    should be equal    ${editor}    test0
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    ${delfile}    删除文件    ${upload[1]}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}
+
+（待改进）用户对文件只有显示、预览、下载、复制、修改、新建权限，复制文件至盘内，有同名文件，执行同名替换，提示没有删除权限。
+    [Tags]    waitingForImproved
+
+用户对文件只有显示、预览、下载、复制、修改、新建、删除权限，复制文件至盘内，有同名文件，执行同名替换，成功
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${127}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    #复制文件
+    ${file}    复制文件    ${robotPath}/testFile/test.docx    /Volumes/AnyShare/Libraries.localized/${docname}
+    should be equal    ${file[0]}    success
+    #获取文件元数据
+    ${metadata}    获取文件元数据    ${re[1]}    ${re[2]}    ${upload[1]}    ${ip}
+    should be equal    ${metadata[0]}    ${200}
+    ${editor}    从字典中取值    ${metadata[1]}    editor
+    should be equal    ${editor}    test0
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    ${delfile}    删除文件    ${upload[1]}    ${ip}    ${re[1]}    ${re[2]}
+    should be equal    ${delfile[0]}    ${200}
+
+用户对文件只有显示、预览、下载、复制、修改、新建、删除权限，删除文件成功
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${True}    ${127}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    # 删除文件
+    ${del}    删除文档    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx
+    should be equal    ${del[0]}    success
+    #取消权限设置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+
+配置用户对文件a的拒绝访问权限，用户看不到文件
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.sh
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #配置拒绝访问权限
+    ${permconfig1}    生成权限配置项    ${True}    ${127}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig1}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    ${permconfig}    生成权限配置项    ${False}    ${127}    ${re1[1]}    user
+    @{permconfigs}    create list    ${permconfig}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${upload[1]}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #l浏览目录
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    AnyShare研发部
+    should be equal    ${listStatus[0]}    success
+    ${isExist}    检查文档是否存在    /Volumes/AnyShare/Libraries.localized/${docname}    test.sh
+    should be equal    ${isExist[0]}    get an exception
+    #取消权限配置
+    @{permconfigs}    create list
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    ${permStatus}    批量设置权限    ${re[1]}    ${re[2]}    ${docid}    ${permconfigs}    ${ip}
+    should be equal    ${permStatus[0]}    ${200}
+    #删除文件
+    ${del}    删除文件    ${upload[1]}    ${ip}    ${re[1]}    ${re[2]}
+
+用户为文件的所有者，可成功复制、打开、编辑、删除文件
+    #获取用户userid
+    ${re}    用户身份验证    test1    EISOO.com123    ${ip}
+    should be equal    ${re[0]}    ${200}
+    ${entryInfo}    获取入口文档    ${re[1]}    ${re[2]}    ${3}    ${ip}
+    should be equal    ${entryInfo[0]}    ${200}
+    ${var}    set variable    ${entryInfo[1]}
+    ${docid}    从字典中取值    ${var[0]}    docid
+    ${docname}    从字典中取值    ${var[0]}    docname
+    #获取用户userid
+    ${re1}    用户身份验证    test0    EISOO.com123    ${ip}
+    should be equal    ${re1[0]}    ${200}
+    ${userconfig}    生成所有者配置项    ${re1[1]}
+    ${userconfig1}    生成所有者配置项    ${re[1]}
+    @{userconfigs}    create list    ${userconfig}    ${userconfig1}
+    ${ownerStatus}    批量设置所有者    ${docid}    ${re[1]}    ${re[2]}    ${userconfigs}
+    should be equal    ${ownerStatus[0]}    ${200}
+    #用户test1上传文件
+    ${upload}    上传文件    ${ip}    ${docid}    ${re[1]}    ${re[2]}    ${robotPath}/testFile/test.docx
+    ...    ${True}    ${EMPTY}    ${False}
+    should be equal    ${upload[0]}    success
+    #打开文件
+    ${listStatus}    客户端浏览目录    AnyShare    ${EMPTY}
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare    文档库
+    should be equal    ${listStatus[0]}    success
+    ${listStatus}    客户端浏览目录    AnyShare:文档库    ${docname}
+    should be equal    ${listStatus[0]}    success
+    ${preview}    操作文件    preview    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    Microsoft Word
+    should be equal    ${preview[0]}    success
+    #复制文件
+    ${del}    删除文档    /Users/${macAccount}/desktop/test.docx
+    should be equal    ${del[0]}    success
+    ${copy}    复制文件    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    /Users/${macAccount}/desktop
+    should be equal    ${copy[0]}    success
+    #编辑文件
+    ${preview}    操作文件    edit    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx    Microsoft Word
+    should be equal    ${preview[0]}    success
+    #删除文件
+    ${del}    删除文档    /Volumes/AnyShare/Libraries.localized/${docname}/test.docx
+    should be equal    ${del[0]}    success
+    #取消所有者配置
+    ${userconfig1}    生成所有者配置项    ${re[1]}
+    @{userconfigs}    create list    ${userconfig1}
+    ${ownerStatus}    批量设置所有者    ${docid}    ${re[1]}    ${re[2]}    ${userconfigs}
+    should be equal    ${ownerStatus[0]}    ${200}

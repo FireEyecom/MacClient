@@ -1,0 +1,79 @@
+*** Settings ***
+Library           SourceLibrary/documentOperation.py
+
+*** Keywords ***
+复制文件
+    [Arguments]    ${SourceFile}    ${destination}
+    ${re}    copy    ${SourceFile}    ${destination}
+    [Return]    ${re}
+
+点击按钮1
+    [Arguments]    ${buttonName}=好
+    ${re}    clickButton1    ${buttonName}
+    [Return]    ${re}
+
+删除文档
+    [Arguments]    ${DocName}
+    ${re}    deleteFile    ${DocName}
+    [Return]    ${re}
+
+客户端浏览目录
+    [Arguments]    ${parentPath}    ${dirName}
+    [Documentation]    模拟mac客户端浏览目录
+    ...
+    ...    parentPath:待浏览目录的父目录 \ \ 例：AnyShare:个人文档
+    ...
+    ...    dirName:待浏览目录名称 \ \ \ \ \ \ \ \ \ 例：test0
+    ${re}    listDir    ${parentPath}    ${dirName}
+    [Return]    ${re}
+
+新建文件夹
+    [Arguments]    ${dirName}
+    ${re}    makeDir    ${dirName}
+    [Return]    ${re}
+
+清除客户端缓存
+    [Arguments]    ${username}
+    [Documentation]    ${uername} 指的是mac机器账户名
+    ${re}    delCache    ${username}
+    [Return]    ${re}
+
+操作文件
+    [Arguments]    ${function}    ${fileName}    ${application}
+    ${re}    fileOperation    ${function}    ${fileName}    ${application}
+    [Return]    ${re}
+
+检查文档是否存在
+    [Arguments]    ${dir1}    ${docName}
+    ${re}    isFileExist    ${dir1}    ${docName}
+    [Return]    ${re}
+
+移动文档
+    [Arguments]    ${SourceFile}    ${destination}
+    ${re}    moveAndRename    ${SourceFile}    ${destination}
+    [Return]    ${re}
+
+开启外链
+    [Arguments]    ${fileName}    ${filePath}
+    ${re}    OpenExternalLink    ${fileName}    ${filePath}
+    [Return]    ${re}
+
+点击外链共享
+    [Arguments]    ${fileName}    ${filePath}
+    ${re}    ClickExternalShare    ${fileName}    ${filePath}
+    [Return]    ${re}
+
+关闭外链
+    [Arguments]    ${fileName}    ${filePath}
+    ${re}    CloseExternalLink    ${fileName}    ${filePath}
+    [Return]    ${re}
+
+添加内链访问者
+    [Arguments]    ${fileName}    ${filePath}
+    ${re}    OpenInternalLink    ${fileName}    ${filePath}
+    [Return]    ${re}
+
+删除内链访问者
+    [Arguments]    ${fileName}    ${filePath}
+    ${re}    DelInternalLinkAccessor    ${fileName}    ${filePath}
+    [Return]    ${re}

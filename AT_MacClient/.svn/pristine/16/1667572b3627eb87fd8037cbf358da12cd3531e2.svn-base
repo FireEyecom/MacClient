@@ -1,0 +1,4 @@
+*** Variables ***
+${ip}             192.168.137.211
+${robotPath}      /Users/elvis/desktop/macClient    # robotframework用例路径
+${macAccount}     elvis

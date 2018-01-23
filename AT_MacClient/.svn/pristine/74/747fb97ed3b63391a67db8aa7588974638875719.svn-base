@@ -1,0 +1,5 @@
+*** Settings ***
+Suite Setup       初始化环境    # 初始化环境
+Suite Teardown    关闭连接
+Resource          commonKeyword.txt
+Resource          variable.txt
