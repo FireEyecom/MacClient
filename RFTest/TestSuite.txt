@@ -1,0 +1,90 @@
+*** Settings ***
+Library           Collections
+Resource          业务关键字.txt
+Library           code/quitAs.py
+
+*** Variables ***
+${hello}          欢迎使用Robot Framework
+@{student}        小明    小红    小虎    小华
+
+*** Test Cases ***
+testcase
+    ${a}    Set variable    90
+    run keyword if    ${a}>=90    log    优秀
+    comment    ...    else    ${a}<=70    合格
+    ${hi}    Catenate    separator=—    hello    world
+    log    ${hi}
+    ${li}    create list    hello    hi    ok
+    log    ${li}
+    @{lst}    create list    nice    to    meet    you
+    : FOR    ${i}    IN    @{lst}
+    \    log    ${i}
+    log many    @{lst}
+    ${t}    get time
+    log    ${t}
+    sleep    3
+    log    3 seconds
+    comment    Evaluate    os.system(“python /Users/mactest/Desktop/personal/PythonFile/TestPython/quitAs.py”)    os
+    #这也是注释
+    ${dict}    create dictionary    a    1    b    2
+    ${items}    get dictionary items    ${dict}
+    log    ${items}
+    ${key}    get dictionary keys    ${dict}
+    log    ${key}
+    ${value}    get dictionary values    ${dict}
+    log    ${value}
+    comment    ${v}    get from dictionary    ${dict}
+    comment    log    ${v}
+    log    Alice ${hello}
+    comment    ${hello}是一个公共变量
+    : FOR    ${n}    IN    @{student}
+    \    log    ${n}
+    comment    使用用户关键字
+    循环    5
+
+decide
+    ${a}    Set variable    99
+    Run Keyword If    ${a}>=90    log    优秀
+    : FOR    ${i}    IN RANGE    10
+    \    exit for loop if    ${i}==7
+    \    log    ${i}
+    ${d}    evaluate    random.randint(1000,9999)    random
+    log    ${d}
+    import library    /Users/mactest/Desktop/personal/PythonFile/TestPython/quitAs.py
+    ${quit_as}    quit_As
+    log    ${quit_as}
+
+case1
+    comment    使用资源文件中的关键字    使用Selenium进行web测试
+    comment    loop    4
+    open browser    http://www.baidu.com    Chrome
+    comment    input text    id=kw    robot framework study
+    comment    click button    id=su
+    comment    close browser
+    comment    ${quitAs}    quit_As
+    comment    log    ${quitAs}
+    quit_As
+
+case
+    comment    quit_As
+    comment    log    ${quitas}
+    ${quitas[0]}    退出
+    should be equal    ${quitas[0]}    success
+
+case2
+    comment    This is testing for selenium2Library Webdriver    http://www.jianshu.com/p/c22b737f16e7
+    open browser    http://www.baidu.com    chrome
+    Input text    id=kw    CC先生 简书 robotframework
+    click button    id=su
+    sleep    1
+    ${title}    get title
+    should contain    ${title}    robotframework
+    close browser
+
+webtest
+
+*** Keywords ***
+循环
+    [Arguments]    ${number}
+    : FOR    ${i}    IN RANGE    ${number}
+    \    log    ${i}

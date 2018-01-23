@@ -1,0 +1,45 @@
+*** Keywords ***
+loop
+    [Arguments]    ${num}
+    : FOR    ${i}    IN RANGE    ${num}
+    \    log    ${i}
+
+退出
+    ${re}    quit_As
+    comment    ${re}为返回参数    quit_As如果有参数，那么可以在其后添加参数变量，同时在settings中设置
+    [Return]    ${re}
+
+登录
+    ${re}    login
+    [Return]    ${re}
+
+新建文件夹
+    [Arguments]    ${dirName}
+    ${re}    makeDir    ${dirName}
+    [Return]    ${re}
+
+复制
+    [Arguments]    ${sourcefile}    ${destination}
+    ${re}    copy    ${sourcefile}    ${destination}
+    [Return]    ${re}
+
+删除
+    [Arguments]    ${docname}
+    ${re}    deleteFile    ${docname}
+    [Return]    ${re}
+
+移动
+    [Arguments]    ${sourcefile}    ${destination}
+    moveAndRename    ${sourcefile}    ${destination}
+
+创建文件
+    [Arguments]    ${destination}    ${filenumber}
+    nsfile    ${destination}    ${filenumber}
+
+压缩
+    [Arguments]    ${dirname}    ${zipfilename}
+    zip_dir    ${dirname}    ${zipfilename}
+
+解压
+    [Arguments]    ${zipfilename}
+    zip_undo    ${zipfilename}

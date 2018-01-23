@@ -1,0 +1,20 @@
+*** Settings ***
+Resource          业务关键字.txt
+Library           code/doc.py
+
+*** Test Cases ***
+文档操作
+    登录
+    新建文件夹    "/Volumes/Anyshare/MyDocuments.localized/t3/tmp"
+    复制    "/Users/elvis/Desktop/Login.docx"    "/Volumes/Anyshare/MyDocuments.localized/t3/tmp"
+    comment    移动    "/Volumes/Anyshare/MyDocuments.localized/t3/test/1.pdf"    "/Volumes/Anyshare/MyDocuments.localized/t3/tmp"
+    ${num}    set variable    2
+    ${n}    evaluate    str(${num})
+    comment    创建文件    "/Volumes/Anyshare/MyDocuments.localized/t3/tmp"    n
+    压缩    /Volumes/Anyshare/MyDocuments.localized/t3/tmp    compress.zip
+    移动    compress.zip    "/Volumes/Anyshare/MyDocuments.localized/t3/tmp"
+    sleep    1
+    解压    /Volumes/Anyshare/MyDocuments.localized/t3/tmp/compress.zip
+    comment    重命名
+    移动    /Volumes/Anyshare/MyDocuments.localized/t3/tmp/compress.zip_files    /Volumes/Anyshare/MyDocuments.localized/t3/tmp/compress
+    删除    /Volumes/Anyshare/MyDocuments.localized/t3/tmp/compress
